@@ -1,0 +1,1843 @@
+//#region global utils
+
+var __DZR_ZENDESK__ = Object.freeze({
+	getOffersMap: function() {
+  	return {
+      'Deezer Free': 'https://www.deezer.com/offers/free',
+    	'Deezer Premium': 'https://www.deezer.com/offers/premium',
+      'Deezer Family': 'https://www.deezer.com/offers/family',
+      'Deezer Student': 'https://www.deezer.com/offers/student',
+      // 'Deezer HiFi': 'https://www.deezer.com/offers/hifi'
+    };
+  },
+  getDevicesStoresMap: function() {
+    return {
+      'ios': {
+          'altText': 'App Store',
+          'storeUrl': 'https://apps.apple.com/app/deezer-music-podcast-player/id292738169',
+          'imagesUrlTemplate': 'https://tools.applemediaservices.com/api/badges/download-on-the-app-store/black/{0}?size=250x83',
+          'keys': {
+            'ar': 'ar-AR',
+            'en': 'en-US',
+            'fr': 'fr-FR',
+            'de': 'de-DE',
+            'es': 'es-ES',
+            'nl': 'nl-NL',
+            'pt': 'pt-PT',
+            'tr': 'tr-TR',
+            'br': 'pt-BR'
+          }
+      },
+      'android': {
+          'altText': 'Google Play',
+          'storeUrl': 'https://play.google.com/store/apps/details?id=deezer.android.app',
+          'imagesUrlTemplate': 'https://play.google.com/intl/en_us/badges/static/images/badges/{0}_badge_web_generic.png',
+          'keys': {
+            'ar': 'ar',
+            'en': 'en',
+            'fr': 'fr',
+            'de': 'de',
+            'es': 'es',
+            'nl': 'nl',
+            'pt': 'pt',
+            'tr': 'tr',
+            'br': 'pt'
+          }
+      }
+    };
+  },
+  getEmojisMap: function() {
+    // https://github.com/linssen/country-flag-icons/tree/master/images/svg
+    return {
+      'us': '//theme.zdassets.com/theme_assets/535320/98d79c4b6d79ea6a5b50676c485e5e725658cdf5.svg',
+      'gb': '//theme.zdassets.com/theme_assets/535320/550fd77ecc93d2cdbde27e6dd3f83fedc21d4a28.svg',
+      'ar': '//theme.zdassets.com/theme_assets/535320/4a80981c14c902fcdc2ec06b858509521f065e96.svg',
+      'de': '//theme.zdassets.com/theme_assets/535320/c48217a5ca039133249c04c1e4248af6e2021020.svg',
+      'es': '//theme.zdassets.com/theme_assets/535320/856008ebe2ee89f496713b949ac7c56c8d8b7d27.svg',
+      'fr': '//theme.zdassets.com/theme_assets/535320/65df83c2656adf22ac8d1c1e640da64a6e597988.svg',
+      'nl': '//theme.zdassets.com/theme_assets/535320/e9d6d9f2ffe57c6a8109651ecccb442e14e9a2fd.svg',
+      'pt': '//theme.zdassets.com/theme_assets/535320/ae202e1d58e8919e510dfe3aec918807fb25eb44.svg',
+      'br': '//theme.zdassets.com/theme_assets/535320/5a3b0b9c6835aeb63234928aba526a3ba7555e52.svg',
+      'tr': '//theme.zdassets.com/theme_assets/535320/36034e47d8d8cb3e7d4896b94be47d061869cc38.svg'
+    };
+  },
+  getArticlesRedirectsMap: function() {
+    return {
+      // Old 'Forgotten password' article redirected to 'Problems logging in'. Can be removed after some time
+      // alee, Sep 10, 2018 at 15:44.
+      '213801525': '214348965',
+      // Broken link at 'https://www.deezer.com/radiobydeezer' - KB section no longer exists
+      // mkhoo, Dec 20, 2018.
+      '3600001697': '360000635117',
+      // Old content redirect URLs can be removed after some time
+      // mkhoo 14.08.2018
+      '115004368605': '115004368825',
+      '115004371249': '115004368825',
+      '115004370449': '115004368825',
+      '204458492': '115004368825'
+    };
+  }
+});
+
+//#endregion
+//#region Zendesk Widget
+console.log(document.getElementsByClassName("innerTabLinks"))
+
+/**
+ * @see: https://developer.zendesk.com/embeddables/docs/widget/settings
+ **/
+window.zESettings = {
+  webWidget: {
+    },
+  launcher: {
+        mobile: {
+          labelVisible: false
+        }
+      },
+    chat: {
+      hideWhenOffline: true,
+      departments: { enabled: [],
+                   },
+    }
+  };
+
+//used to determine D4C redirect lang
+function determineLang() {
+   if(window.location.href.toString().includes('/hc/de/')) {
+    return 'de'
+  }else if(window.location.href.toString().includes('/hc/es/')) {
+    return 'es-mx'
+  }else if(window.location.href.toString().includes('/hc/pt-br/')) {
+    return 'pt-br'
+  }else if(window.location.href.toString().includes('/hc/fr/')) {
+    return 'fr-fr'
+  } else {
+    return 'en-us'
+  }
+}
+
+if(window.location.href.toString().includes('360000206905')) {
+  let creatorsRedirectArticle = document.getElementsByClassName('article-title')[0]
+	let redirectATag = creatorsRedirectArticle.parentElement.parentElement.parentElement
+  let lang = determineLang()
+  redirectATag.href = `https://creatorsupport.deezer.com/hc/${lang}`
+}
+
+if(window.location.href.toString().includes('7764370881437')) {
+  let lang = determineLang()
+  window.location.href = `https://creatorsupport.deezer.com/hc/${lang}`
+}
+
+//tags for new chat stuff
+const url = window.location.href
+
+function tagCreator(url) {
+  let languageValue = ''
+  if (url.toString().includes("/hc/en-gb")) {
+    languageValue = 'english_hc'
+	} else if (url.toString().includes("/hc/tr")) {
+    languageValue = 'turkish_hc'
+	} else if (url.toString().includes("/hc/de")) {
+    languageValue = 'german_hc'
+	} else if (url.toString().includes("/hc/ar")) {
+    languageValue = 'arabic_hc'
+	} else if (url.toString().includes("/hc/es")) {
+    languageValue = 'spanish_hc'
+	} else if (url.toString().includes("/hc/fr")) {
+    languageValue = 'french_hc'
+	} else if (url.toString().includes("/hc/pt-br")) {
+    languageValue = 'portuguese_hc'
+	}
+  zE('webWidget', 'chat:addTags', languageValue)
+}
+
+function deleteTags() {
+  zE('webWidget', 'chat:removeTags', ['french_hc', 'english_hc', 'german_hc', 'turkish_hc', 'arabic_hc', 'spanish_hc', 'portuguese_hc'])
+  setTimeout(() => {
+  tagCreator(url)
+  }, 500)
+}
+
+window.addEventListener("DOMContentLoaded", deleteTags)
+
+//#endregion
+
+//chatbot closure
+//You can change the language by editing the URL below
+//To do multiple langauges simply duplicate lines and change the URL
+
+if (window.location.href.indexOf("https://support.deezer.com/hc/en-gb") > -1) {  
+//zE('webWidget', 'hide');
+}
+if (window.location.href.indexOf("https://support.deezer.com/hc/fr") > -1) { 
+//zE('webWidget', 'hide');
+}
+if (window.location.href.indexOf("https://support.deezer.com/hc/pt-br") > -1) {  
+//zE('webWidget', 'hide');
+}
+if (window.location.href.indexOf("https://support.deezer.com/hc/de") > -1) {  
+//zE('webWidget', 'hide');
+}
+if (window.location.href.indexOf("https://support.deezer.com/hc/ar") > -1) {  
+//zE('webWidget', 'hide');
+}  
+if (window.location.href.indexOf("https://support.deezer.com/hc/es") > -1) {  
+//zE('webWidget', 'hide');
+}
+if (window.location.href.indexOf("https://support.deezer.com/hc/tr") > -1) {  
+ //zE('webWidget', 'hide');
+}
+
+
+//buttons for carousel on homepage
+var indexes = []
+var marginElements = []
+
+var prevButtons = document.getElementsByClassName('prev-carousel')
+var nextButtons = document.getElementsByClassName('next-carousel')
+
+if (document.querySelector('.revamp-blocks-wrapper')) { 
+  let carouselWidth = document.querySelector('.revamp-blocks-wrapper').offsetWidth;
+}
+var marginElement = document.getElementsByClassName('revamp-blocks-wrapper')
+
+for (var i = 0; i < marginElement.length; i++) {
+    marginElement[i].id = `marginElement${i + 1}`
+    marginElements.push(marginElement[i])
+}
+
+var tracks = document.getElementsByClassName('track')
+for (var i = 0; i < tracks.length; i++) {
+    tracks[i].id = `track${i + 1}`
+    indexes.push(0)
+}
+
+jQuery(document).ready(function($) {
+    // Store the window width
+    var windowWidth = $(window).width();
+    // Resize Event
+    $(window).resize(function(){
+        // Check window width has actually changed and it's not just iOS triggering a resize event on scroll
+        if ($(window).width() != windowWidth) {
+            // Update the window width for next time
+            windowWidth = $(window).width();
+        for (var i = 0; i < tracks.length; i++) {
+        tracks[i].style.transform = "translate(0)"
+        indexes[i] = 0;
+        prevButtons[i].style.display = 'none'
+    }
+    loadFunction()
+    if (document.querySelector('.revamp-blocks-wrapper')) { 
+  let carouselWidth = document.querySelector('.revamp-blocks-wrapper').offsetWidth;
+	}
+        }
+	null
+    });
+
+});
+
+function loadFunction() {
+    for (var i = 0; i < nextButtons.length; i++) {
+        var wrapper = nextButtons[i].nextElementSibling
+        var id = wrapper.id
+        var currentTrack = document.getElementById(id)
+        var indexId = id.replace(/[^0-9\.]+/g, "")
+        var indexPlace = parseInt(indexId) - 1
+        var index = indexes[indexPlace]
+        var nodeLength = Math.ceil((currentTrack.childNodes.length) / 2 - 0.5)
+        var bodyWidth = window.getComputedStyle(document.querySelector("body")).width
+        var styledBodyWidth = bodyWidth.replace(/[^0-9\.]+/g, "")
+        var toNumber = parseFloat(styledBodyWidth)
+        var windowWidth = (toNumber + 18.889)
+        if (windowWidth > 1160) {
+            if ((index + 4) <= nodeLength) {
+                nextButtons[indexPlace].style.display = "flex"
+            } else {
+                nextButtons[indexPlace].style.display = "none"
+                marginElements[indexPlace].style.marginBottom = '-40px' 
+            }
+        } else if (windowWidth > 662 && windowWidth <= 1160) {
+            if ((index + 3) <= nodeLength) {
+                nextButtons[indexPlace].style.display = "flex"
+            } else {
+                nextButtons[indexPlace].style.display = "none"
+                marginElements[indexPlace].style.marginBottom = '-40px' 
+            }
+        } else if (windowWidth <= 662) {
+            if (nodeLength === 1) {
+                nextButtons[indexPlace].style.display = "none"
+                 marginElements[indexPlace].style.marginBottom = '-40px' 
+            } else {
+                if (index <= nodeLength) {
+                  	// if (nodeLength > 3) {
+                    nextButtons[indexPlace].style.display = "flex"
+                  //LOOK INTO THIS IF IT BECOMES A FUTURE ISSUE- basically to create more padding with buttons
+                  	// } else {
+                  	// nextButtons[indexPlace].style.display = "flex"
+                  	// var example = document.getElementById(`marginElement${indexPlace + 2}`)
+                  	// var newElementExample = example.previousElementSibling
+                  	// newElementExample.style.marginTop = '110px'
+                  	// }
+                } else {
+                    nextButtons[indexPlace].style.display = "none"
+                }
+            }
+        }
+    }
+}
+
+loadFunction()
+
+function handleWindowWidthsForward(windowWidth, index, nodeLength, indexPlace) {
+    if (windowWidth > 1160) {
+        if ((index * 4 + 4) >= nodeLength) {
+            null
+        } else {
+            indexes[indexPlace] += 1
+        }
+    } else if (windowWidth > 662 && windowWidth <= 1160) {
+        if ((index * 2 + 2) >= nodeLength) {
+            null
+        } else {
+            indexes[indexPlace] += 1
+        }
+    } else if (windowWidth <= 662) {
+        if ((index + 1) >= nodeLength) {
+            null
+        } else {
+            indexes[indexPlace] += 1
+        }
+    }
+}
+
+function handleSetTimeoutWidthsForward(currentTrack, indexPlace, index, nodeLength, windowWidth) {
+    let carouselWidth = document.querySelector('.revamp-blocks-wrapper').offsetWidth;
+  	if (url.toString().includes("/hc/ar")) {
+      currentTrack.style.transform = `translateX(${indexes[indexPlace] * carouselWidth + 5}px)`;
+    } else {
+       currentTrack.style.transform = `translateX(-${indexes[indexPlace] * carouselWidth}px)`;
+    }
+    if (indexes[indexPlace] > 0) {
+        prevButtons[indexPlace].style.display = 'flex'
+    }
+    if (windowWidth > 1160) {
+        if ((index + 1) * 4 + 4 >= nodeLength) {
+            nextButtons[indexPlace].style.display = "none"
+        }
+    } else if (windowWidth > 662 && windowWidth <= 1160) {
+        if ((index + 1) * 2 + 2 >= nodeLength) {
+            nextButtons[indexPlace].style.display = "none"
+        }
+    } else if (windowWidth <= 662) {
+        if ((index + 1) * 1 + 1 >= nodeLength) {
+            nextButtons[indexPlace].style.display = "none"
+        }
+    }
+}
+
+function handleBackIndex(index, indexPlace, currentTrack) {
+    if (index === 0) {
+        null
+    } else {
+        indexes[indexPlace] -= 1;
+    }
+    const myTimeout = setTimeout(myGreeting, 200)
+
+    function myGreeting() {
+        let carouselWidth = document.querySelector('.revamp-blocks-wrapper').offsetWidth;
+      if (url.toString().includes("/hc/ar")) {
+      currentTrack.style.transform = `translateX(${indexes[indexPlace] * carouselWidth + 5}px)`;
+    } else {
+        currentTrack.style.transform = `translateX(-${indexes[indexPlace] * carouselWidth}px)`
+    }
+        if (indexes[indexPlace] === 0) {
+            prevButtons[indexPlace].style.display = 'none'
+        }
+        nextButtons[indexPlace].style.display = 'flex'
+    }
+}
+
+document.addEventListener('click', function(event) {
+    if (event.target.matches('.next-carousel')) {
+        var buttonElement = event.target
+        var wrapper = buttonElement.nextElementSibling
+        var id = wrapper.id
+        var currentTrack = document.getElementById(id)
+        var indexId = id.replace(/[^0-9\.]+/g, "")
+        var indexPlace = parseInt(indexId) - 1
+        var index = indexes[indexPlace]
+        var nodeLength = Math.ceil((currentTrack.childNodes.length) / 2 - 0.5)
+        var bodyWidth = window.getComputedStyle(document.querySelector("body")).width
+        var styledBodyWidth = bodyWidth.replace(/[^0-9\.]+/g, "")
+        var toNumber = parseFloat(styledBodyWidth)
+        var windowWidth = (toNumber + 18.889)
+        handleWindowWidthsForward(windowWidth, index, nodeLength, indexPlace)
+
+        const transitionTimeout = setTimeout(transistionEffect, 200)
+
+        function transistionEffect() {
+            handleSetTimeoutWidthsForward(currentTrack, indexPlace, index, nodeLength, windowWidth)
+        }
+    }
+    if (event.target.matches('.prev-carousel')) {
+        var buttonElement = event.target
+        var nextButton = buttonElement.nextElementSibling
+        var wrapper = nextButton.nextElementSibling
+        var id = wrapper.id
+        var currentTrack = document.getElementById(id)
+        let nodeLength = Math.ceil((currentTrack.childNodes.length) / 2 - 0.5)
+        var indexId = id.replace(/[^0-9\.]+/g, "")
+        var indexPlace = parseInt(indexId) - 1
+        var index = indexes[indexPlace]
+        handleBackIndex(index, indexPlace, currentTrack)
+    }
+}, null);
+
+//swipe handling
+function handleSwipeBack(wrapper) {
+    var id = wrapper.id
+    var currentTrack = document.getElementById(id)
+    let nodeLength = Math.ceil((currentTrack.childNodes.length) / 2 - 0.5)
+    var indexId = id.replace(/[^0-9\.]+/g, "")
+    var indexPlace = parseInt(indexId) - 1
+    var index = indexes[indexPlace]
+    handleBackIndex(index, indexPlace, currentTrack)
+}
+
+function handleSwipeForward(wrapper) {
+    var id = wrapper.id
+    var currentTrack = document.getElementById(id)
+    var indexId = id.replace(/[^0-9\.]+/g, "")
+    var indexPlace = parseInt(indexId) - 1
+    var index = indexes[indexPlace]
+    var nodeLength = Math.ceil((currentTrack.childNodes.length) / 2 - 0.5)
+    var bodyWidth = window.getComputedStyle(document.querySelector("body")).width
+    var styledBodyWidth = bodyWidth.replace(/[^0-9\.]+/g, "")
+    var toNumber = parseFloat(styledBodyWidth)
+    var windowWidth = (toNumber + 18.889)
+    handleWindowWidthsForward(windowWidth, index, nodeLength, indexPlace)
+
+    const myTimeout = setTimeout(myGreeting, 200)
+
+    function myGreeting() {
+        handleSetTimeoutWidthsForward(currentTrack, indexPlace, index, nodeLength, windowWidth)
+    }
+}
+
+function handleWrapperElements(event) {
+    let wrapper = ''
+    var buttonElement = event.target
+    if (event.target.matches('.revamp-blocks-section')) {
+        wrapper = buttonElement.parentElement
+        return wrapper
+    } else if (event.target.matches('.revamp-blocks-block-head')) {
+        let mediator = buttonElement.parentElement
+        let parentEl = mediator.parentElement
+        wrapper = parentEl.parentElement
+        return wrapper
+    } else {
+        let mediator = buttonElement.parentElement
+        let parentEl = mediator.parentElement
+        let x = parentEl.parentElement
+        let y = x.parentElement
+        let z = y.parentElement
+        wrapper = z.parentElement
+        return wrapper
+    }
+}
+
+if (document.getElementById('track1')) {
+    let carouselTouchstartX = 0;
+    let carouselTouchendX = 0;
+    let startY = 0
+    let distY = 0
+    let startX = 0
+    let distX = 0
+    let varianceY = 0
+    let varianceX = 0
+    document.addEventListener('touchstart', function(event) {
+        carouselTouchstartX = event.changedTouches[0].screenX;
+        var carouselX = event.changedTouches[0]
+        startY = carouselX.screenY
+        startX = carouselX.screenY
+    }, null)
+    document.addEventListener('touchend', function(event) {
+        carouselTouchendX = event.changedTouches[0].screenX;
+        var carouselX = event.changedTouches[0]
+        distY = carouselX.screenY
+        distX = carouselX.screenX
+        varianceY = startY - distY
+        varianceX = startX - distX
+        if (event.target.matches('.revamp-blocks-section') || event.target.matches('.revamp-blocks-block-head') || event.target.matches('.revamp-blocks-block-elements-item-anchor-title')) {
+            if (carouselTouchendX < carouselTouchstartX && -40 < varianceY && varianceY < 40) {
+                let wrapper = handleWrapperElements(event)
+                handleSwipeForward(wrapper)
+            }
+
+            if (carouselTouchendX > carouselTouchstartX && -40 < varianceY && varianceY < 40) {
+                let wrapper = handleWrapperElements(event)
+                handleSwipeBack(wrapper)
+            }
+        }
+    }, null)
+}
+
+// //carousel
+var slideIndex = 1;
+
+// Next/previous controls
+function plusSlides(n) {
+  showSlides(slideIndex += n);
+}
+
+function minusSlides(n) {
+  showSlides(slideIndex -= n);
+}
+
+// Thumbnail image controls
+function currentSlide(n) {
+  showSlides(slideIndex = n);
+}
+
+function showSlides(n) {
+  var i;
+  var slides = document.getElementsByClassName("mySlides");
+  var dots = document.getElementsByClassName("dot");
+  if (n > slides.length) {slideIndex = 1}
+  if (n < 1) {slideIndex = slides.length}
+  for (i = 0; i < slides.length; i++) {
+      slides[i].style.display = "none";
+  }
+  for (i = 0; i < dots.length; i++) {
+      dots[i].className = dots[i].className.replace(" active", "");
+  }
+  slides[slideIndex-1].style.display = "flex";
+  dots[slideIndex-1].className += " active";
+}
+
+if (document.getElementsByClassName("slideshow-container").length === 0) {
+  null
+} else {
+showSlides(slideIndex);
+
+var swipe = document.getElementById('swipe')
+
+var touchstartX = 0;
+  var touchendX = 0;
+
+ swipe.addEventListener('touchstart', function(event) {
+    touchstartX = event.changedTouches[0].screenX;
+  }, false);
+
+  swipe.addEventListener('touchend', function(event) {
+    touchendX = event.changedTouches[0].screenX;
+      handleSwipe();
+  }, false); 
+
+  function handleSwipe() {
+      var swiped = 'swiped: ';
+     if (touchendX < touchstartX) {
+          plusSlides(1);
+      }
+    if (touchendX > touchstartX) {
+         minusSlides(1);
+      }
+  }
+}
+
+//accordions
+var acc = document.getElementsByClassName("accordion");
+function hideFunction(panel) {
+  if (panel.classList.contains('hidden')) {
+    panel.classList.remove('hidden');
+    setTimeout(function () {
+      panel.classList.remove('visuallyhidden');
+      panel.style.height = '100%'
+      panel.previousElementSibling.textContent = '\u2212';
+    }, 20);
+  } else {
+    panel.classList.add('visuallyhidden');   
+    panel.style.height = '0px'
+    panel.addEventListener('transitionend', function(e) {
+      panel.classList.add('hidden');
+      panel.previousElementSibling.textContent = '+';
+    }, {
+      capture: false,
+      once: true,
+      passive: false
+    });
+  }
+}
+
+function openAll(panel) {
+  if (panel.classList.contains('hidden')) {
+    panel.classList.remove('hidden');
+    setTimeout(function () {
+      panel.classList.remove('visuallyhidden');
+      panel.style.height = '100%'
+      panel.previousElementSibling.textContent = '\u2212';
+    }, 20);
+  } else {
+    null
+  }
+}
+
+  document.addEventListener("click", function(event) {
+    if (event.target.matches('.accordion')) {
+      var firstElement = event.target.nextElementSibling
+      var panel = firstElement.nextElementSibling
+      hideFunction(panel) 
+    }
+    if (event.target.matches('.helperButton')){
+     	var panel = event.target.nextElementSibling
+      hideFunction(panel)
+    }
+  })
+
+//ctrlF to open all accordions
+document.addEventListener('keydown', (event) => {
+    var name = event.key;
+    var code = event.code;
+    if (event.ctrlKey && code === 'KeyF' && document.getElementsByClassName("tablinks").length > 0) {
+       var tabs = document.getElementsByClassName("tablinks")
+      var accordion = document.getElementsByClassName("accordion")
+        if (document.getElementsByClassName("accordion").length > 0 && tabs[1].className === "tablinks active"){
+        for (let i = 0; i < accordion.length; i++) {
+          var button = accordion[i].nextElementSibling
+          var panel = button.nextElementSibling
+          openAll(panel)
+			}
+		}
+	}
+	if (event.ctrlKey && code === 'KeyF' && document.getElementsByClassName("tablinks").length <= 0) {
+    var accordion = document.getElementsByClassName("accordion")
+        if (document.getElementsByClassName("accordion").length > 0){
+        for (let i = 0; i < accordion.length; i++) {
+          var button = accordion[i].nextElementSibling
+          var panel = button.nextElementSibling
+          openAll(panel)
+			}
+		}
+  }
+})
+
+window.addEventListener('DOMContentLoaded', (event) => {
+    if (document.getElementsByClassName("innerTabcontent").length > 0){
+ var innerTabContent = document.getElementsByClassName("innerTabcontent")
+      innerTabContent[0].style.display= "block";
+ } else {null}
+   if (document.getElementsByClassName("tabcontent").length > 0){
+ var tabContent = document.getElementsByClassName("tabcontent")
+    tabContent[0].style.display= "block";
+ } else {null}
+   if (document.getElementsByClassName("secondInnerTabcontent").length > 0){
+ var secondInnerTabContent = document.getElementsByClassName("secondInnerTabcontent")
+      secondInnerTabContent[0].style.display= "block";
+ } else {null}
+    if (document.getElementsByClassName("thirdInnerTabcontent").length > 0){
+ var thirdInnerTabContent = document.getElementsByClassName("thirdInnerTabcontent")
+      thirdInnerTabContent[0].style.display= "block";
+ } else {null}
+    if (document.getElementsByClassName("fourthInnerTabcontent").length > 0){
+ var thirdInnerTabContent = document.getElementsByClassName("fourthInnerTabcontent")
+      thirdInnerTabContent[0].style.display= "block";
+ } else {null}
+});
+
+//Opening and Closing tabs
+
+function openTab(evt, tabName) {
+  // Declare all variables
+  var i, tabcontent, tablinks;
+
+  // Get all elements with class="tabcontent" and hide them
+  tabcontent = document.getElementsByClassName("tabcontent");
+  for (i = 0; i < tabcontent.length; i++) {
+    tabcontent[i].style.display = "none";
+  }
+  
+  // Get all elements with class="tablinks" and remove the class "active"
+  tablinks = document.getElementsByClassName("tablinks");
+  for (i = 0; i < tablinks.length; i++) {
+    tablinks[i].className = tablinks[i].className.replace(" active", "");
+  }
+  
+  // Show the current tab, and add an "active" class to the button that opened the tab
+  document.getElementById(tabName).style.display = "block";
+  evt.currentTarget.className += " active";
+  
+  if (tablinks[0].className === "tablinks active") {
+    tablinks[0].style.color = '#000'
+  }else {
+      tablinks[0].style.color = '#999'
+    }
+  
+  if (tablinks[1].className === "tablinks active") {
+    tablinks[1].style.color = '#000'
+  }else {
+      tablinks[1].style.color = '#999'
+    }
+  
+  if (tablinks.length === 2) {
+    null
+  } else if (tablinks[2].className === "tablinks active") {
+    tablinks[2].style.color = '#000'
+  }else {
+      tablinks[2].style.color = '#999'
+    }
+}
+
+function openInnerTab(evt, tabName) {
+  // Declare all variables
+  var i, innerTabcontent, tablinks;
+
+  // Get all elements with class="tabcontent" and hide them
+  innerTabcontent = document.getElementsByClassName("innerTabcontent");
+  for (i = 0; i < innerTabcontent.length; i++) {
+    innerTabcontent[i].style.display = "none";
+  }
+  
+  // Get all elements with class="tablinks" and remove the class "active"
+  tablinks = document.getElementsByClassName("innerTablinks");
+  for (i = 0; i < tablinks.length; i++) {
+    tablinks[i].className = tablinks[i].className.replace(" active", "");
+  }
+  
+  // Show the current tab, and add an "active" class to the button that opened the tab
+  document.getElementById(tabName).style.display = "block";
+  evt.currentTarget.className += " active";
+  
+  if (tablinks[0].className === "innerTablinks active") {
+    tablinks[0].style.color = '#000'
+  }else {
+      tablinks[0].style.color = '#999'
+    }
+  
+  if (tablinks[1].className === "innerTablinks active") {
+    tablinks[1].style.color = '#000'
+  }else {
+      tablinks[1].style.color = '#999'
+    }
+  
+  if (tablinks[2].className === "innerTablinks active") {
+    tablinks[2].style.color = '#000'
+  }else {
+      tablinks[2].style.color = '#999'
+    }
+}
+
+function openSecondInnerTab(evt, tabName) {
+  // Declare all variables
+  var i, secondInnerTabcontent, tablinks;
+
+  // Get all elements with class="tabcontent" and hide them
+  secondInnerTabcontent = document.getElementsByClassName("secondInnerTabcontent");
+  for (i = 0; i < secondInnerTabcontent.length; i++) {
+    secondInnerTabcontent[i].style.display = "none";
+  }
+  
+  // Get all elements with class="tablinks" and remove the class "active"
+  tablinks = document.getElementsByClassName("secondInnerTablinks");
+  for (i = 0; i < tablinks.length; i++) {
+    tablinks[i].className = tablinks[i].className.replace(" active", "");
+  }
+  
+  // Show the current tab, and add an "active" class to the button that opened the tab
+  document.getElementById(tabName).style.display = "block";
+  evt.currentTarget.className += " active";
+  
+  if (tablinks[0].className === "secondInnerTablinks active") {
+    tablinks[0].style.color = '#000'
+  }else {
+      tablinks[0].style.color = '#999'
+    }
+  
+  if (tablinks[1].className === "secondInnerTablinks active") {
+    tablinks[1].style.color = '#000'
+  }else {
+      tablinks[1].style.color = '#999'
+    }
+  
+  if (tablinks[2].className === "secondInnerTablinks active") {
+    tablinks[2].style.color = '#000'
+  }else {
+      tablinks[2].style.color = '#999'
+    }
+}
+
+function openThirdInnerTab(evt, tabName) {
+  // Declare all variables
+  var i, thirdInnerTabcontent, tablinks;
+
+  // Get all elements with class="tabcontent" and hide them
+ thirdInnerTabcontent = document.getElementsByClassName("thirdInnerTabcontent");
+  for (i = 0; i < thirdInnerTabcontent.length; i++) {
+    thirdInnerTabcontent[i].style.display = "none";
+  }
+  
+  // Get all elements with class="tablinks" and remove the class "active"
+  tablinks = document.getElementsByClassName("thirdInnerTablinks");
+  for (i = 0; i < tablinks.length; i++) {
+    tablinks[i].className = tablinks[i].className.replace(" active", "");
+  }
+  
+  // Show the current tab, and add an "active" class to the button that opened the tab
+  document.getElementById(tabName).style.display = "block";
+  evt.currentTarget.className += " active";
+  
+  if (tablinks[0].className === "thirdInnerTablinks active") {
+    tablinks[0].style.color = '#000'
+  }else {
+      tablinks[0].style.color = '#999'
+    }
+  
+  if (tablinks[1].className === "thirdInnerTablinks active") {
+    tablinks[1].style.color = '#000'
+  }else {
+      tablinks[1].style.color = '#999'
+    }
+  
+  if (tablinks[2].className === "thirdInnerTablinks active") {
+    tablinks[2].style.color = '#000'
+  }else {
+      tablinks[2].style.color = '#999'
+    }
+}
+
+function openFourthInnerTab(evt, tabName) {
+  // Declare all variables
+  var i, thirdInnerTabcontent, tablinks;
+
+  // Get all elements with class="tabcontent" and hide them
+ thirdInnerTabcontent = document.getElementsByClassName("fourthInnerTabcontent");
+  for (i = 0; i < thirdInnerTabcontent.length; i++) {
+    thirdInnerTabcontent[i].style.display = "none";
+  }
+  
+  // Get all elements with class="tablinks" and remove the class "active"
+  tablinks = document.getElementsByClassName("fourthInnerTablinks");
+  for (i = 0; i < tablinks.length; i++) {
+    tablinks[i].className = tablinks[i].className.replace(" active", "");
+  }
+  
+  
+  // Show the current tab, and add an "active" class to the button that opened the tab
+  document.getElementById(tabName).style.display = "block";
+  evt.currentTarget.className += " active";
+  
+  if (tablinks[0].className === "fourthInnerTablinks active") {
+    tablinks[0].style.color = '#000'
+  }else {
+      tablinks[0].style.color = '#999'
+    }
+  
+  if (tablinks[1].className === "fourthInnerTablinks active") {
+    tablinks[1].style.color = '#000'
+  }else {
+      tablinks[1].style.color = '#999'
+    }
+  
+  if (tablinks[2].className === "fourthInnerTablinks active") {
+    tablinks[2].style.color = '#000'
+  }else {
+      tablinks[2].style.color = '#999'
+    }
+}
+
+
+//locale setting
+async function localeSetter(id, locale) {
+  var url = `https://deezer.zendesk.com/api/v2/help_center/articles/${encodeURIComponent(id)}/translations/${encodeURIComponent(locale)}`
+  const response = await fetch(url);
+  const data = await response.json();
+  if (data.error === "TranslationMissing") {
+  var body = " "
+  var title = " "
+  var articleLink = " "
+  var transHappened = true
+  return [body, title, articleLink, transHappened] 
+  } else {
+  var body = data.translation.body
+  var title = data.translation.title
+  var articleLink = data.translation.html_url
+  var transHappened = false
+  return [body, title, articleLink, transHappened] 
+  }
+}
+
+function localeFinder(id) {
+var images = document.getElementsByClassName('header-country-flag')
+var flagDetails = images[0]
+var strippedHTML = flagDetails.outerHTML
+
+if(strippedHTML.indexOf("English") !== -1) {
+   return "false"
+	} else if (strippedHTML.indexOf("Français") !== -1) {
+  let locale = "fr"
+  let translatedText = localeSetter(id, locale)
+  let finalTranslation = translatedText.then(function(result) {
+    return result
+      })
+ return finalTranslation 
+  } else if (strippedHTML.indexOf("Deutsch") !== -1) {
+  let locale = "de"
+  let translatedText = localeSetter(id, locale)
+  let finalTranslation = translatedText.then(function(result) {
+    return result
+      })
+ return finalTranslation 
+  } else if (strippedHTML.indexOf("Português do Brasil") !== -1) {
+  let locale = "pt-br"
+  let translatedText = localeSetter(id, locale)
+  let finalTranslation = translatedText.then(function(result) {
+    return result
+      })
+ return finalTranslation 
+  }  else if (strippedHTML.indexOf("Español") !== -1) {
+  let locale = "es"
+  let translatedText = localeSetter(id, locale)
+  let finalTranslation = translatedText.then(function(result) {
+    return result
+      })
+ return finalTranslation 
+  } else if (strippedHTML.indexOf("Türkçe") !== -1) {
+  let locale = "tr"
+  let translatedText = localeSetter(id, locale)
+  let finalTranslation = translatedText.then(function(result) {
+    return result
+      })
+ return finalTranslation 
+  } else if (strippedHTML.indexOf("العربية") !== -1) {
+  let locale = "ar"
+  let translatedText = localeSetter(id, locale)
+  let finalTranslation = translatedText.then(function(result) {
+    return result
+      })
+ return finalTranslation 
+  }
+  else {return "false"}
+}
+
+//this is used to remove the tags for the metadescription type text
+function removeTags(str) {
+        if ((str === null) || (str === ''))
+            return false;
+        else
+            str = str.toString();
+        return str.replace(/(<([^>]+)>)/ig, '');
+    }
+
+
+//custom page breaking news
+
+function dateChecker(articleFinishDate, par, metadescription, id, transHappened) {
+    //newer means greater. this is where we add the articles if they are within the correct date range
+  let articleSorted = new Article(articleFinishDate, par, metadescription, id);
+   if (!transHappened) {
+     if (articleFinishDate > new Date()){
+  articlesForLoad.push(articleSorted)
+     } else {
+       null
+     }} else {null}
+   
+}
+//.indexOf('href="https"')
+
+var articlesForLoad = []
+
+class Article {
+  constructor(finishDate, name, metadescription, id) {  
+    this.articleFinishDate = finishDate;
+    this.name = name;
+    this.metadescription = metadescription
+    this.id = id
+  }
+}
+
+async function fetchData(callbackFn) {
+	
+	//this is the API request that will bring back all the correct articles
+    const response = await fetch('https://deezer.zendesk.com/api/v2/help_center/articles/search?label_names=breaking_news');
+    const data = await response.json();
+    var entry = data.results
+	if (entry.length === 0) {
+    callbackFn()
+  }
+    
+	//this sorts the articles newest to oldest
+    var sortedArticlesByDate = entry.sort(function (a, b) {
+            return new Date(b.edited_at) - new Date(a.edited_at); 
+    })
+
+	//this is where all the logic for creating the h2 and p elements happens
+	//it is also where we set the end dates for each article
+    sortedArticlesByDate.forEach(entry => {
+      
+      //create a variable that holds the translated text
+     let htmlText = entry.body
+     let articleName = entry.title
+     let articleLink = entry.html_url
+     let id = entry.id
+     let transHappened = false
+    
+     const myTimeout6 = setTimeout(sixthFunc, 100);
+		function sixthFunc() {
+  	  if (localeFinder(entry.id) === "false") {
+        null
+      } else {
+         let finalTranslation = localeFinder(entry.id)
+      finalTranslation.then(function(result) {
+        htmlText = result[0]
+        articleName = result[1]
+        articleLink = result[2]
+        transHappened = result[3]
+      })
+	}
+    }
+    
+         
+		//creation of an a tag and giving it the article URL and title
+        var temp_link = document.createElement("a");
+        temp_link.target = '_blank';
+       const myTimeout3 = setTimeout(thirdFunc, 1000);
+		function thirdFunc() {
+   
+      temp_link.href = articleLink;
+        temp_link.innerHTML = articleName;
+    }
+		//creation of a h2 tag which then gets the info from the a tag stuff above
+        var par = document.createElement("h2");
+        par.appendChild(temp_link);
+        par.setAttribute("id", "special-h2")
+   
+		
+		//creation of the p tag that gives a small description below the title
+        var metadescription = document.createElement("p");
+        metadescription.setAttribute("id", "metadescription-p")
+       
+ const myTimeout2 = setTimeout(secondFunc, 1000);
+		function secondFunc() {
+     
+      var removedTags = removeTags(htmlText)
+		const newContent = document.createTextNode(removedTags)
+        metadescription.appendChild(newContent)
+    }
+
+		//all the date stuff for the current article. Set by the date it is last updated
+        var isoDate = entry.edited_at;
+      //should this be edited_at?
+        var articleDate = new Date(isoDate);
+        let d = new Date(isoDate);
+        let timeElapsed = []
+
+		//looks for the strings "_days" or "1_day" and then takes the number 
+		//this will be used to set the amount of days that the article will be visible on the page
+        entry.label_names.forEach((string) => {
+            if (string.includes("_days")) {
+				var mySubString = string.substring(
+                        string[-1],
+                        string.lastIndexOf("_"))
+                var numberFromString = parseInt(mySubString)
+                timeElapsed.push(numberFromString)
+				
+            } else if (string.includes("1_day")) {
+                var mySubString = 1
+                    var numberFromString = parseInt(mySubString)
+                    timeElapsed.push(numberFromString)
+            } 
+        })
+
+		//sets the amount of days for the article to be visible
+       const myTimeout5 = setTimeout(fifthFunc, 1200);
+		function fifthFunc() {
+        var timeElapsedFromNow = d.setDate(d.getDate() + timeElapsed[0])
+            timeElapsedFromNow = new Date(timeElapsedFromNow)
+            dateChecker(timeElapsedFromNow, par, metadescription, id, transHappened)
+       callbackFn()
+    }
+     
+    });
+
+    //This will be the string that is needed in order to send show the articles
+}
+
+
+if (window.location.href.indexOf("/p/breaking-news") > -1) {
+  
+  var language = window.navigator.userLanguage || window.navigator.language;
+  var lowerLanguage = language.toLowerCase()
+  
+  if (window.location.href.indexOf("https://support.deezer.com/hc/p/breaking-news") > -1) { 
+   var newURL = `https://support.deezer.com/hc/${encodeURIComponent(lowerLanguage)}/p/breaking-news`
+  window.location.replace(newURL)
+}
+  
+  if (window.location.href.indexOf("https://support.deezer.com/hc/ar/p/breaking-news") > -1) { 
+  document.getElementsByClassName("breaking-news")[0].style.padding = "0 2.7% 0 0"
+  }
+
+  fetchData(myFunc4)
+  var pageNumber = 0
+  
+  //number between buttons
+  var newPageNumber = pageNumber + 1 
+  var pageNumString = newPageNumber.toString()
+  var pageRef = document.createElement("h4");
+  pageRef.style.display = "inline"
+  pageRef.style.padding = "0 20px 0 15px"
+pageRef.innerText = pageNumString;
+  let buttonDiv = document.getElementById('increment-decrement-pages');
+buttonDiv.insertBefore(pageRef, buttonDiv.children[1]);
+  
+  
+		function myFunc4() {
+      if (articlesForLoad.length === 0) {
+        document.getElementsByClassName("text-div-break")[0].style.display = "inline-block"
+        document.getElementsByClassName("text-div-break")[1].style.display = "inline-block"
+        document.getElementsByClassName("breaking-news-button-text")[0].style.display = "inline-block"
+        document.getElementsByClassName("placeholder-text")[0].style.display = "flex"
+        document.getElementsByClassName("placeholder-text")[1].style.display = "flex"
+        document.getElementsByClassName("filler-div")[0].style.display = "flex"
+        document.getElementsByClassName("button-div-breaking")[0].style.display = "flex"
+      } else {
+        null
+      }
+      
+      for (let i = pageNumber * 5; i < (pageNumber * 5) + 5; i++) {
+        if (articlesForLoad[i] === undefined) {
+          null
+        } else {
+          document.getElementById("main-div").appendChild(articlesForLoad[i].name);
+    document.getElementById("main-div").appendChild(articlesForLoad[i].metadescription)
+        }
+	}}
+     
+}
+
+function incrementPage() {
+  if (((pageNumber * 5) + 5) > articlesForLoad.length) {
+    null
+  } else {
+    pageNumber++;
+    document.getElementById("main-div").innerHTML = ""
+  }
+  myFunc4()
+ var newNumber = pageNumber + 1
+   pageRef.innerText = newNumber.toString() 
+}
+
+function decrementPage() {
+  if (pageNumber === 0) {
+    null
+  } else {
+  pageNumber--;
+     document.getElementById("main-div").innerHTML = ""
+  }
+ 
+  myFunc4()
+  var newNumber = pageNumber + 1
+   pageRef.innerText = newNumber.toString() 
+}
+
+// MW-Notification Banner
+document.addEventListener('DOMContentLoaded', async function () {
+  // Article label to be considered for the alerts
+  const label = 'alert'
+
+  // Show the article body within the alertbox? (Boolean: true/false)
+  const showArticleBody = true
+
+  // Get current help center locale
+  const locale = document
+    .querySelector('html')
+    .getAttribute('lang')
+    .toLowerCase()
+
+  // URL to be called to get the alert data
+  const url = `/api/v2/help_center/${locale}/articles.json?label_names=${label}`
+
+  // Raw data collected from the endpoint above
+  const data = await (await fetch(url)).json()
+
+  // List of articles returned
+  const articles = (data && data.articles) || []
+
+  // Handle returned articles
+  for (let i = 0; i < articles.length; i++) {
+    const url = articles[i].html_url
+    const title = articles[i].title
+    const body = articles[i].body
+    const update = articles[i].edited_at
+  
+    var currentTime = new Date()
+    var updatedArticle = new Date(update) 
+
+   var calc = updatedArticle.getTime() - currentTime.getTime()
+   var hoursDifference = Math.round(calc / (1000*3600))
+   var dayDiff = Math.abs(hoursDifference)
+   var daysDifference = Math.floor(dayDiff /24)
+   let difference = Math.abs(hoursDifference)
+   let finalDifference
+   if (difference < 1) {
+     if (locale == "en-gb" || locale == "en-us") {
+     finalDifference = "less than an hour ago"
+     }
+     if (locale == "fr") {
+     finalDifference = "il y a moins d'une heure"
+     }
+     if (locale == "pt-br") {
+     finalDifference = "menos de uma hora atrás"
+     }
+     if (locale == "es") {
+     finalDifference = "hace menos de una hora"
+     }
+     if (locale == "ar") {
+     finalDifference = "منذ أقل من ساعة"
+     }
+     if (locale == "tr") {
+     finalDifference = "bir saatten az bir süre önce"
+     }
+     if (locale == "de") {
+       finalDifference =  "vor weniger als einer Stunde"
+     }
+   } else if (difference < 2) {
+      if (locale == "en-gb" || locale == "en-us") {
+     finalDifference = "1 hour ago"
+     }
+     if (locale == "fr") {
+     finalDifference = "Il y a 1 heure"
+     }
+     if (locale == "pt-br") {
+     finalDifference = "1 hora atrás"
+     }
+     if (locale == "es") {
+     finalDifference = "Hace una hora"
+     }
+     if (locale == "ar") {
+     finalDifference = "منذ ساعة"
+     }
+     if (locale == "tr") {
+     finalDifference = "1 saat önce"
+     }
+     if (locale == "de") {
+       finalDifference =  "vor eine Stunde"
+     }
+   } else if (difference < 73) {
+       if (locale == "en-gb" || locale == "en-us") {
+     finalDifference = `${difference} hours ago`
+     }
+       if (locale == "fr") {
+     finalDifference = `il y a ${difference} heures`
+     }
+     
+     if (locale == "pt-br") {
+     finalDifference = `${difference} horas atrás`
+     }
+     if (locale == "es") {
+     finalDifference = `hace ${difference} horas`
+     }
+     if (locale == "ar") {
+     finalDifference = `منذ ${difference} ساعات`
+     }
+     if (locale == "tr") {
+     finalDifference = `${difference} saat önce`
+     }
+     if (locale == "de") {
+     finalDifference = `vor ${difference} Stunden`
+     }} else {
+        if (locale == "en-gb" || locale == "en-us") {
+     finalDifference = `${daysDifference} days ago`
+     }
+        if (locale == "fr") {
+     finalDifference = `il y a ${daysDifference} jours`
+     }
+     
+     if (locale == "pt-br") {
+     finalDifference = `${daysDifference} dias atrás`
+     }
+     if (locale == "es") {
+     finalDifference = `hace ${daysDifference} días`
+     }
+     if (locale == "ar") {
+     finalDifference = `أيام ${daysDifference} قبل`
+     }
+     if (locale == "tr") {
+     finalDifference = `${daysDifference} gün önce`
+     }
+     if (locale == "de") {
+     finalDifference = `vor ${daysDifference} Tagen`
+     }
+   }
+   
+		
+  
+    const html = `
+      <div class="ns-box ns-bar ns-effect-slidetop ns-type-notice ns-show">
+          <p>
+            <a href="${url}">${title}</a> - ${finalDifference}
+          </p>
+      </div>
+    `
+
+    // Append current alert to the alertbox container
+    document.querySelector('.alertbox').insertAdjacentHTML('beforeend', html)
+  }
+})
+
+document.addEventListener('click', function (event) {
+  // Close alertbox
+  if (event.target.matches('.ns-close')) {
+    event.preventDefault()
+    event.target.parentElement.remove()
+  }
+})
+
+
+document.addEventListener('DOMContentLoaded', function() {
+  //#region Revamp
+  
+  /**
+   * As SVG icons are outside form elements and we do not want to change 
+   * the layout (too much), we bind existing icons to the sibling form (if exists)
+   **/
+  function bindSearchIconsToSiblingForms() {
+  	var elements = document.getElementsByClassName('search-icon');
+  
+    for (var i = 0, l = elements.length; i < l; ++i) {
+      var current = elements[i];
+      var nextElement = current.nextElementSibling;
+
+      if (nextElement.nodeName === "FORM") {
+        current.addEventListener('click', function() {
+          nextElement.submit();
+        });
+      }
+    }
+  };
+  
+  function renderOffersDropdownLst() {
+    var elements = document.querySelectorAll('[data-offers-list]');
+    var offersMap = __DZR_ZENDESK__.getOffersMap();
+    var offersNames = Object.keys(offersMap);
+    
+    for (var i = 0, l = elements.length; i < l; ++i) {
+      var current = elements[i];
+      var role = current.getAttribute('data-offers-list-items-role') || null;
+      
+      offersNames.forEach(function(offerName) {
+        var anchor = document.createElement('a');
+        
+        anchor.setAttribute('href', offersMap[offerName]);
+        anchor.setAttribute('target', '_blank');
+      	anchor.classList.add('deezer-offer-element');
+        
+        if (role !== null) {
+          anchor.setAttribute('role', role);
+        }
+        
+        anchor.innerText = offerName;
+        current.appendChild(anchor);
+      });
+    }
+  };
+  
+  function renderLocaleToEmojiFlag() {
+    var elements = document.querySelectorAll('[data-map-locale]');
+    var emojisMap = __DZR_ZENDESK__.getEmojisMap();
+    
+    for (var i = 0, l = elements.length; i < l; ++i) {
+      var current = elements[i];
+      var localeLocale = current.getAttribute('data-map-locale-locale');
+      var localeName = current.getAttribute('data-map-locale-name');
+      var match = (
+        emojisMap[localeLocale] ||
+        emojisMap[localeLocale.split('-')[1]] ||
+        emojisMap[localeLocale.split('-')[0]]
+      );
+      
+      if (match !== void 0) {
+        var img = document.createElement('img');
+        img.setAttribute('src', match);
+        img.setAttribute('alt', localeName);
+        img.classList.add('header-country-flag');
+        current.parentNode.replaceChild(img, current);
+      } else current.innerText = localeName;
+    }
+  };
+  
+  function renderDownloadAppImages() {
+    var elements = document.querySelectorAll('[data-download-app]');
+    var devicesMap = __DZR_ZENDESK__.getDevicesStoresMap();
+    
+    for (var i = 0, l = elements.length; i < l; ++i) {
+      var current = elements[i];
+      var downloadAppDevice = current.getAttribute('data-download-app-device');
+      var downloadAppLocale = current.getAttribute('data-download-app-locale');
+      var deviceProps = devicesMap[downloadAppDevice];
+      
+      if (deviceProps === void 0) {
+        continue;
+      }
+      
+      var deviceKeys = deviceProps.keys;
+      var mappedKey = downloadAppLocale.toLowerCase();
+      var deviceKey = (
+        deviceKeys[mappedKey] ||
+        deviceKeys[mappedKey.split('-')[1]] ||
+        deviceKeys[mappedKey.split('-')[0]]
+      );
+      
+      if (deviceKey === void 0) {
+        continue;
+      }
+      
+      var deviceImage = deviceProps.imagesUrlTemplate.replace('{0}', deviceKey);
+      var img = document.createElement('img');
+      img.setAttribute('src', deviceImage);
+      img.setAttribute('alt', deviceProps.altText);
+      img.classList.add('download-app-image', downloadAppDevice);
+      
+      var anchor = document.createElement('a');
+      anchor.setAttribute('href', deviceProps.storeUrl);
+      anchor.setAttribute('target', '_blank');
+      anchor.appendChild(img);
+      
+      current.parentNode.replaceChild(anchor, current);
+    }
+  };
+  
+  function handleArticlesRedirect() {
+    var redirectsMap = __DZR_ZENDESK__.getArticlesRedirectsMap();
+    var currentUrl = window.location.href;
+    var keys = Object.keys(redirectsMap);
+    
+    for (var i = 0, l = keys.length; i < l; ++i) {
+      if (currentUrl.indexOf(keys[i]) !== -1) {
+        window.location.href= 'https://support.deezer.com/hc/articles/' + redirectsMap[keys[i]];
+        break;
+      }
+    }
+  };
+  
+  function bindCookieBannerDisplay() {
+    document.querySelector('.cookie-preference').addEventListener('click', function (event) {
+      event.preventDefault();
+      if (window.Cookiebot) window.Cookiebot.show();
+    }, true);
+  }
+  
+  handleArticlesRedirect();
+	bindSearchIconsToSiblingForms();
+  bindCookieBannerDisplay();
+  renderOffersDropdownLst();
+  renderLocaleToEmojiFlag();
+  renderDownloadAppImages();
+  
+  //#endregion
+  //#region Zendesk
+  
+  // Key map
+  var ENTER = 13;
+  var ESCAPE = 27;
+  var SPACE = 32;
+  var UP = 38;
+  var DOWN = 40;
+  var TAB = 9;
+
+  function closest (element, selector) {
+    if (Element.prototype.closest) {
+      return element.closest(selector);
+    }
+    do {
+      if (Element.prototype.matches && element.matches(selector)
+        || Element.prototype.msMatchesSelector && element.msMatchesSelector(selector)
+        || Element.prototype.webkitMatchesSelector && element.webkitMatchesSelector(selector)) {
+        return element;
+      }
+      element = element.parentElement || element.parentNode;
+    } while (element !== null && element.nodeType === 1);
+    return null;
+  }
+
+  // social share popups
+  Array.prototype.forEach.call(document.querySelectorAll('.share a'), function(anchor) {
+    anchor.addEventListener('click', function(e) {
+      e.preventDefault();
+      window.open(this.href, '', 'height = 500, width = 500');
+    });
+  });
+
+  // In some cases we should preserve focus after page reload
+  function saveFocus() {
+    var activeElementId = document.activeElement.getAttribute("id");
+    sessionStorage.setItem('returnFocusTo', '#' + activeElementId);
+  }
+  var returnFocusTo = sessionStorage.getItem('returnFocusTo');
+  if (returnFocusTo) {
+    sessionStorage.removeItem('returnFocusTo');
+    var returnFocusToEl = document.querySelector(returnFocusTo);
+    returnFocusToEl && returnFocusToEl.focus && returnFocusToEl.focus();
+  }
+
+  // show form controls when the textarea receives focus or backbutton is used and value exists
+  var commentContainerTextarea = document.querySelector('.comment-container textarea'),
+    commentContainerFormControls = document.querySelector('.comment-form-controls, .comment-ccs');
+
+  if (commentContainerTextarea) {
+    commentContainerTextarea.addEventListener('focus', function focusCommentContainerTextarea() {
+      commentContainerFormControls.style.display = 'block';
+      commentContainerTextarea.removeEventListener('focus', focusCommentContainerTextarea);
+    });
+
+    if (commentContainerTextarea.value !== '') {
+      commentContainerFormControls.style.display = 'block';
+    }
+  }
+
+  // Expand Request comment form when Add to conversation is clicked
+  var showRequestCommentContainerTrigger = document.querySelector('.request-container .comment-container .comment-show-container'),
+    requestCommentFields = document.querySelectorAll('.request-container .comment-container .comment-fields'),
+    requestCommentSubmit = document.querySelector('.request-container .comment-container .request-submit-comment');
+
+  if (showRequestCommentContainerTrigger) {
+    showRequestCommentContainerTrigger.addEventListener('click', function() {
+      showRequestCommentContainerTrigger.style.display = 'none';
+      Array.prototype.forEach.call(requestCommentFields, function(e) { e.style.display = 'block'; });
+      requestCommentSubmit.style.display = 'inline-block';
+
+      if (commentContainerTextarea) {
+        commentContainerTextarea.focus();
+      }
+    });
+  }
+
+  // Mark as solved button
+  var requestMarkAsSolvedButton = document.querySelector('.request-container .mark-as-solved:not([data-disabled])'),
+    requestMarkAsSolvedCheckbox = document.querySelector('.request-container .comment-container input[type=checkbox]'),
+    requestCommentSubmitButton = document.querySelector('.request-container .comment-container input[type=submit]');
+
+  if (requestMarkAsSolvedButton) {
+    requestMarkAsSolvedButton.addEventListener('click', function() {
+      requestMarkAsSolvedCheckbox.setAttribute('checked', true);
+      requestCommentSubmitButton.disabled = true;
+      this.setAttribute('data-disabled', true);
+      // Element.closest is not supported in IE11
+      closest(this, 'form').submit();
+    });
+  }
+
+  // Change Mark as solved text according to whether comment is filled
+  var requestCommentTextarea = document.querySelector('.request-container .comment-container textarea');
+
+  var usesWysiwyg = requestCommentTextarea && requestCommentTextarea.dataset.helper === "wysiwyg";
+
+  function isEmptyPlaintext(s) {
+    return s.trim() === '';
+  }
+
+  function isEmptyHtml(xml) {
+    var doc = new DOMParser().parseFromString(`<_>${xml}</_>`, "text/xml");
+    var img = doc.querySelector("img");
+    return img === null && isEmptyPlaintext(doc.children[0].textContent);
+  };
+
+  var isEmpty = usesWysiwyg ? isEmptyHtml : isEmptyPlaintext;
+
+  if (requestCommentTextarea) {
+    requestCommentTextarea.addEventListener('input', function() {
+      if (isEmpty(requestCommentTextarea.value)) {
+        if (requestMarkAsSolvedButton) {
+          requestMarkAsSolvedButton.innerText = requestMarkAsSolvedButton.getAttribute('data-solve-translation');
+        }
+        requestCommentSubmitButton.disabled = true;
+      } else {
+        if (requestMarkAsSolvedButton) {
+          requestMarkAsSolvedButton.innerText = requestMarkAsSolvedButton.getAttribute('data-solve-and-submit-translation');
+        }
+        requestCommentSubmitButton.disabled = false;
+      }
+    });
+  }
+
+  // Disable submit button if textarea is empty
+  if (requestCommentTextarea && isEmpty(requestCommentTextarea.value)) {
+    requestCommentSubmitButton.disabled = true;
+  }
+
+  // Submit requests filter form on status or organization change in the request list page
+  Array.prototype.forEach.call(document.querySelectorAll('#request-status-select, #request-organization-select'), function(el) {
+    el.addEventListener('change', function(e) {
+      e.stopPropagation();
+      saveFocus();
+      closest(this, 'form').submit();
+    });
+  });
+
+  // Submit requests filter form on search in the request list page
+  var quickSearch = document.querySelector('#quick-search');
+  quickSearch && quickSearch.addEventListener('keyup', function(e) {
+    if (e.keyCode === ENTER) {
+      e.stopPropagation();
+      saveFocus();
+      closest(this, 'form').submit();
+    }
+  });
+
+  function toggleNavigation(toggle, menu) {
+    var isExpanded = menu.getAttribute('aria-expanded') === 'true';
+    menu.setAttribute('aria-expanded', !isExpanded);
+    toggle.setAttribute('aria-expanded', !isExpanded);
+  }
+
+  function closeNavigation(toggle, menu) {
+    menu.setAttribute('aria-expanded', false);
+    toggle.setAttribute('aria-expanded', false);
+    toggle.focus();
+  }
+
+  var burgerMenu = document.querySelector('.header .menu-button');
+  var userMenu = document.querySelector('#user-nav');
+
+  if (burgerMenu !== null) {
+    burgerMenu.addEventListener('click', function(e) {
+      e.stopPropagation();
+      toggleNavigation(this, userMenu);
+    });
+  }
+
+  if (userMenu !== null) {
+    userMenu.addEventListener('keyup', function(e) {
+      if (e.keyCode === ESCAPE) {
+        e.stopPropagation();
+        closeNavigation(burgerMenu, this);
+      }
+    });
+
+    if (userMenu.children.length === 0) {
+      burgerMenu.style.display = 'none';
+    }
+  }
+
+  // Toggles expanded aria to collapsible elements
+  var collapsible = document.querySelectorAll('.collapsible-nav, .collapsible-sidebar');
+
+  Array.prototype.forEach.call(collapsible, function(el) {
+    var toggle = el.querySelector('.collapsible-nav-toggle, .collapsible-sidebar-toggle');
+
+    el.addEventListener('click', function(e) {
+      toggleNavigation(toggle, this);
+    });
+
+    el.addEventListener('keyup', function(e) {
+      if (e.keyCode === ESCAPE) {
+        closeNavigation(toggle, this);
+      }
+    });
+  });
+
+  // Submit organization form in the request page
+  var requestOrganisationSelect = document.querySelector('#request-organization select');
+
+  if (requestOrganisationSelect) {
+    requestOrganisationSelect.addEventListener('change', function() {
+      closest(this, 'form').submit();
+    });
+  }
+
+  // If multibrand search has more than 5 help centers or categories collapse the list
+  var multibrandFilterLists = document.querySelectorAll(".multibrand-filter-list");
+  Array.prototype.forEach.call(multibrandFilterLists, function(filter) {
+    if (filter.children.length > 6) {
+      // Display the show more button
+      var trigger = filter.querySelector(".see-all-filters");
+      trigger.setAttribute("aria-hidden", false);
+
+      // Add event handler for click
+      trigger.addEventListener("click", function(e) {
+        e.stopPropagation();
+        trigger.parentNode.removeChild(trigger);
+        filter.classList.remove("multibrand-filter-list--collapsed")
+      })
+    }
+  });
+
+  // If there are any error notifications below an input field, focus that field
+  var notificationElm = document.querySelector(".notification-error");
+  if (
+    notificationElm &&
+    notificationElm.previousElementSibling &&
+    typeof notificationElm.previousElementSibling.focus === "function"
+  ) {
+    notificationElm.previousElementSibling.focus();
+  }
+
+  // Dropdowns
+  
+  function Dropdown(toggle, menu) {
+    this.toggle = toggle;
+    this.menu = menu;
+
+    this.menuPlacement = {
+      top: menu.classList.contains("dropdown-menu-top"),
+      end: menu.classList.contains("dropdown-menu-end")
+    };
+
+    this.toggle.addEventListener("click", this.clickHandler.bind(this));
+    this.toggle.addEventListener("keydown", this.toggleKeyHandler.bind(this));
+    this.menu.addEventListener("keydown", this.menuKeyHandler.bind(this));
+  };
+
+  Dropdown.prototype = {
+
+    get isExpanded() {
+      return this.menu.getAttribute("aria-expanded") === "true";
+    },
+
+    get menuItems() {
+      return Array.prototype.slice.call(this.menu.querySelectorAll("[role='menuitem']"));
+    },
+
+    dismiss: function() {
+      if (!this.isExpanded) return;
+
+      this.menu.setAttribute("aria-expanded", false);
+      this.menu.classList.remove("dropdown-menu-end", "dropdown-menu-top");
+    },
+
+    open: function() {
+      if (this.isExpanded) return;
+
+      this.menu.setAttribute("aria-expanded", true);
+      this.handleOverflow();
+    },
+
+    handleOverflow: function() {
+      var rect = this.menu.getBoundingClientRect();
+
+      var overflow = {
+        right: rect.left < 0 || rect.left + rect.width > window.innerWidth,
+        bottom: rect.top < 0 || rect.top + rect.height > window.innerHeight
+      };
+
+      if (overflow.right || this.menuPlacement.end) {
+        this.menu.classList.add("dropdown-menu-end");
+      }
+
+      if (overflow.bottom || this.menuPlacement.top) {
+        this.menu.classList.add("dropdown-menu-top");
+      }
+
+      if (this.menu.getBoundingClientRect().top < 0) {
+        this.menu.classList.remove("dropdown-menu-top")
+      }
+    },
+
+    focusNextMenuItem: function(currentItem) {
+      if (!this.menuItems.length) return;
+
+      var currentIndex = this.menuItems.indexOf(currentItem);
+      var nextIndex = currentIndex === this.menuItems.length - 1 || currentIndex < 0 ? 0 : currentIndex + 1;
+
+      this.menuItems[nextIndex].focus();
+    },
+
+    focusPreviousMenuItem: function(currentItem) {
+      if (!this.menuItems.length) return;
+
+      var currentIndex = this.menuItems.indexOf(currentItem);
+      var previousIndex = currentIndex <= 0 ? this.menuItems.length - 1 : currentIndex - 1;
+
+      this.menuItems[previousIndex].focus();
+    },
+
+    clickHandler: function() {
+      if (this.isExpanded) {
+        this.dismiss();
+      } else {
+        this.open();
+      }
+    },
+
+    toggleKeyHandler: function(e) {
+      switch (e.keyCode) {
+        case ENTER:
+        case SPACE:
+        case DOWN:
+          e.preventDefault();
+          this.open();
+          this.focusNextMenuItem();
+          break;
+        case UP:
+          e.preventDefault();
+          this.open();
+          this.focusPreviousMenuItem();
+          break;
+        case ESCAPE:
+          this.dismiss();
+          this.toggle.focus();
+          break;
+      }
+    },
+
+    menuKeyHandler: function(e) {
+      var firstItem = this.menuItems[0];
+      var lastItem = this.menuItems[this.menuItems.length - 1];
+      var currentElement = e.target;
+
+      switch (e.keyCode) {
+        case ESCAPE:
+          this.dismiss();
+          this.toggle.focus();
+          break;
+        case DOWN:
+          e.preventDefault();
+          this.focusNextMenuItem(currentElement);
+          break;
+        case UP:
+          e.preventDefault();
+          this.focusPreviousMenuItem(currentElement);
+          break;
+        case TAB:
+          if (e.shiftKey) {
+            if (currentElement === firstItem) {
+              this.dismiss();
+            } else {
+              e.preventDefault();
+              this.focusPreviousMenuItem(currentElement);
+            }
+          } else if (currentElement === lastItem) {
+            this.dismiss();
+          } else {
+            e.preventDefault();
+            this.focusNextMenuItem(currentElement);
+          }
+          break;
+        case ENTER:
+        case SPACE:
+          e.preventDefault();
+          currentElement.click();
+          break;
+      }
+    }
+  }
+
+  var dropdowns = [];
+  var dropdownToggles = Array.prototype.slice.call(document.querySelectorAll(".dropdown-toggle"));
+
+  dropdownToggles.forEach(function(toggle) {
+    var menu = toggle.nextElementSibling;
+    if (menu && menu.classList.contains("dropdown-menu")) {
+      dropdowns.push(new Dropdown(toggle, menu));
+    }
+  });
+
+  document.addEventListener("click", function(evt) {
+    dropdowns.forEach(function(dropdown) {
+      if (!dropdown.toggle.contains(evt.target)) {
+        dropdown.dismiss();
+      }
+    });
+  });
+  
+  //#endregion
+});
